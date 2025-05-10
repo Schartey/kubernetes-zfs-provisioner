@@ -19,8 +19,12 @@ func (p *ZFSProvisioner) Provision(ctx context.Context, options controller.Provi
 	if err != nil {
 		return nil, controller.ProvisioningNoChange, fmt.Errorf("failed to parse StorageClass parameters: %w", err)
 	}
+	uid := options.PVC.Annotations["zfs-provisioner.io/owner-uid"]
+	gid := options.PVC.Annotations["zfs-provisioner.io/owner-gid"]
+	perm := options.PVC.Annotations["zfs-provisioner.io/permissions"]
+	name := options.PVC.Annotations["zfs-provisioner.io/name"]
 
-	datasetPath := fmt.Sprintf("%s/%s", parameters.ParentDataset, options.PVName)
+	datasetPath := fmt.Sprintf("%s/%s-%s", parameters.ParentDataset, options.PVName, name)
 	properties := make(map[string]string)
 
 	useHostPath := canUseHostPath(parameters, options)
@@ -52,7 +56,8 @@ func (p *ZFSProvisioner) Provision(ctx context.Context, options controller.Provi
 	if err != nil {
 		return nil, controller.ProvisioningFinished, fmt.Errorf("creating ZFS dataset failed: %w", err)
 	}
-	if err := p.zfs.SetPermissions(dataset); err != nil {
+
+	if err := p.zfs.SetPermissions(dataset, uid, gid, perm); err != nil {
 		return nil, controller.ProvisioningFinished, err
 	}
 	p.log.Info("dataset created", "dataset", dataset.Name)
@@ -67,7 +72,7 @@ func (p *ZFSProvisioner) Provision(ctx context.Context, options controller.Provi
 
 	pv := &v1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        options.PVName,
+			Name:        fmt.Sprintf("%s-%s", options.PVName, name),
 			Labels:      options.PVC.Labels,
 			Annotations: annotations,
 		},

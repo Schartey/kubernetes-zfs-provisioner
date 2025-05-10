@@ -18,7 +18,7 @@ type (
 		GetDataset(name string, hostname string) (*Dataset, error)
 		CreateDataset(name string, hostname string, properties map[string]string) (*Dataset, error)
 		DestroyDataset(dataset *Dataset, flag DestroyFlag) error
-		SetPermissions(dataset *Dataset) error
+		SetPermissions(dataset *Dataset, uid string, gid string, perm string) error
 	}
 	// Dataset is a representation of a ZFS dataset
 	Dataset struct {
@@ -108,7 +108,7 @@ func (z *zfsImpl) DestroyDataset(dataset *Dataset, flag DestroyFlag) error {
 	return dataset.datasetImpl.Destroy(destrFlag)
 }
 
-func (z *zfsImpl) SetPermissions(dataset *Dataset) error {
+func (z *zfsImpl) SetPermissions(dataset *Dataset, uid string, gid string, perm string) error {
 	if err := validateDataset(dataset); err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (z *zfsImpl) SetPermissions(dataset *Dataset) error {
 	if err := setEnvironmentVars(dataset.Hostname); err != nil {
 		return err
 	}
-	cmd := exec.Command("update-permissions", dataset.Mountpoint)
+	cmd := exec.Command("update-permissions", dataset.Mountpoint, uid, gid, perm)
 	if filepath.IsAbs(cmd.Path) {
 		out, err := cmd.CombinedOutput()
 		if err != nil {

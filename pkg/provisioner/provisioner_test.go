@@ -27,8 +27,8 @@ func (z *zfsStub) DestroyDataset(dataset *zfs.Dataset, flag zfs.DestroyFlag) err
 	return args.Error(0)
 }
 
-func (z *zfsStub) SetPermissions(dataset *zfs.Dataset) error {
-	args := z.Called(dataset)
+func (z *zfsStub) SetPermissions(dataset *zfs.Dataset, uid string, gid string, perm string) error {
+	args := z.Called(dataset, uid, gid, perm)
 	return args.Error(0)
 }
 
